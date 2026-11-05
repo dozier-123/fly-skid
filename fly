@@ -1,0 +1,122 @@
+
+-- Flight System
+-- Place in StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+local flying = false
+local character
+local humanoid
+local rootPart
+
+local attachment
+local velocity
+local orientation
+
+local keys = {}
+
+local function cleanup()
+	if velocity then velocity:Destroy() end
+	if orientation then orientation:Destroy() end
+	if attachment then attachment:Destroy() end
+
+	velocity = nil
+	orientation = nil
+	attachment = nil
+end
+
+local function setupCharacter(char)
+	character = char
+	humanoid = char:WaitForChild("Humanoid")
+	rootPart = char:WaitForChild("HumanoidRootPart")
+
+	if flying then
+		flying = false
+		cleanup()
+	end
+end
+
+player.CharacterAdded:Connect(setupCharacter)
+
+if player.Character then
+	setupCharacter(player.Character)
+end
+
+local function toggleFlight()
+	if not humanoid or not rootPart then return end
+
+	flying = not flying
+
+	if flying then
+		attachment = Instance.new("Attachment")
+		attachment.Parent = rootPart
+
+		velocity = Instance.new("LinearVelocity")
+		velocity.Attachment0 = attachment
+		velocity.MaxForce = math.huge
+		velocity.VectorVelocity = Vector3.zero
+		velocity.Parent = rootPart
+
+		orientation = Instance.new("AlignOrientation")
+		orientation.Attachment0 = attachment
+		orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+		orientation.Responsiveness = 15
+		orientation.MaxTorque = math.huge
+		orientation.Parent = rootPart
+
+		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+	else
+		cleanup()
+		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+	end
+end
+
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+
+	if input.KeyCode == Enum.KeyCode.E then
+		toggleFlight()
+	end
+
+	keys[input.KeyCode] = true
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	keys[input.KeyCode] = false
+end)
+
+RunService.RenderStepped:Connect(function()
+	if not flying or not velocity or not rootPart then return end
+
+	local camera = workspace.CurrentCamera
+	local moveDirection = Vector3.zero
+
+	local forward = camera.CFrame.LookVector
+	local right = camera.CFrame.RightVector
+
+	if keys[Enum.KeyCode.W] then moveDirection += forward end
+	if keys[Enum.KeyCode.S] then moveDirection -= forward end
+	if keys[Enum.KeyCode.D] then moveDirection += right end
+	if keys[Enum.KeyCode.A] then moveDirection -= right end
+	if keys[Enum.KeyCode.Space] then moveDirection += Vector3.yAxis end
+	if keys[Enum.KeyCode.LeftControl] then moveDirection -= Vector3.yAxis end
+
+	if moveDirection.Magnitude > 0 then
+		moveDirection = moveDirection.Unit
+	end
+
+	local speed = humanoid.WalkSpeed
+
+	velocity.VectorVelocity = moveDirection * speed
+
+	if moveDirection.Magnitude > 0 then
+		orientation.CFrame = CFrame.lookAt(
+			Vector3.zero,
+			Vector3.new(forward.X, 0, forward.Z)
+		)
+	end
+end)
