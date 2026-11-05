@@ -1,14 +1,17 @@
 
--- Flight System
--- Place in StarterPlayerScripts
+-- FLIGHT SYSTEM + CONTROL PANEL
+-- Place in StarterPlayer > StarterPlayerScripts
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
+-- SETTINGS
+local flightSpeed = 50
 local flying = false
+
 local character
 local humanoid
 local rootPart
@@ -18,6 +21,179 @@ local velocity
 local orientation
 
 local keys = {}
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "FlightControlPanel"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromOffset(230, 125)
+frame.Position = UDim2.new(0, 20, 0.5, -62)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+frame.BorderSizePixel = 0
+frame.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -70, 0, 30)
+title.Position = UDim2.fromOffset(10, 5)
+title.BackgroundTransparency = 1
+title.Text = "Flight Controls"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 15
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.fromOffset(25, 25)
+minimize.Position = UDim2.new(1, -60, 0, 5)
+minimize.Text = "-"
+minimize.TextSize = 18
+minimize.Font = Enum.Font.GothamBold
+minimize.BackgroundColor3 = Color3.fromRGB(65, 65, 80)
+minimize.TextColor3 = Color3.new(1, 1, 1)
+minimize.Parent = frame
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.fromOffset(25, 25)
+close.Position = UDim2.new(1, -30, 0, 5)
+close.Text = "X"
+close.TextSize = 14
+close.Font = Enum.Font.GothamBold
+close.BackgroundColor3 = Color3.fromRGB(180, 55, 55)
+close.TextColor3 = Color3.new(1, 1, 1)
+close.Parent = frame
+
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, -20, 0, 25)
+speedLabel.Position = UDim2.fromOffset(10, 40)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Flight Speed:"
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.TextSize = 13
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = frame
+
+local speedBox = Instance.new("TextBox")
+speedBox.Size = UDim2.new(1, -20, 0, 35)
+speedBox.Position = UDim2.fromOffset(10, 72)
+speedBox.BackgroundColor3 = Color3.fromRGB(48, 48, 60)
+speedBox.TextColor3 = Color3.new(1, 1, 1)
+speedBox.PlaceholderText = "Enter speed..."
+speedBox.Text = tostring(flightSpeed)
+speedBox.TextSize = 14
+speedBox.Font = Enum.Font.Gotham
+speedBox.ClearTextOnFocus = false
+speedBox.Parent = frame
+
+local boxCorner = Instance.new("UICorner")
+boxCorner.CornerRadius = UDim.new(0, 6)
+boxCorner.Parent = speedBox
+
+-- MINIMIZED BUTTON
+local miniButton = Instance.new("TextButton")
+miniButton.Size = UDim2.fromOffset(100, 30)
+miniButton.Position = frame.Position
+miniButton.Text = "Flight Controls"
+miniButton.TextSize = 12
+miniButton.Font = Enum.Font.GothamBold
+miniButton.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+miniButton.TextColor3 = Color3.new(1, 1, 1)
+miniButton.Visible = false
+miniButton.Parent = gui
+
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(0, 7)
+miniCorner.Parent = miniButton
+
+-- CLOSE CONFIRMATION
+local prompt = Instance.new("Frame")
+prompt.Size = UDim2.fromOffset(230, 100)
+prompt.Position = UDim2.new(0, 20, 0.5, -50)
+prompt.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+prompt.Visible = false
+prompt.Parent = gui
+
+local promptCorner = Instance.new("UICorner")
+promptCorner.CornerRadius = UDim.new(0, 10)
+promptCorner.Parent = prompt
+
+local promptText = Instance.new("TextLabel")
+promptText.Size = UDim2.new(1, 0, 0, 40)
+promptText.BackgroundTransparency = 1
+promptText.Text = "Are you sure you want to close?"
+promptText.TextColor3 = Color3.new(1, 1, 1)
+promptText.TextSize = 12
+promptText.Font = Enum.Font.Gotham
+promptText.Parent = prompt
+
+local yes = Instance.new("TextButton")
+yes.Size = UDim2.fromOffset(95, 30)
+yes.Position = UDim2.fromOffset(12, 55)
+yes.Text = "Confirm"
+yes.BackgroundColor3 = Color3.fromRGB(180, 55, 55)
+yes.TextColor3 = Color3.new(1, 1, 1)
+yes.Font = Enum.Font.GothamBold
+yes.Parent = prompt
+
+local no = Instance.new("TextButton")
+no.Size = UDim2.fromOffset(95, 30)
+no.Position = UDim2.fromOffset(123, 55)
+no.Text = "Cancel"
+no.BackgroundColor3 = Color3.fromRGB(65, 65, 80)
+no.TextColor3 = Color3.new(1, 1, 1)
+no.Font = Enum.Font.GothamBold
+no.Parent = prompt
+
+-- GUI FUNCTIONS
+
+minimize.MouseButton1Click:Connect(function()
+	frame.Visible = false
+	miniButton.Visible = true
+end)
+
+miniButton.MouseButton1Click:Connect(function()
+	frame.Visible = true
+	miniButton.Visible = false
+end)
+
+close.MouseButton1Click:Connect(function()
+	frame.Visible = false
+	prompt.Visible = true
+end)
+
+no.MouseButton1Click:Connect(function()
+	prompt.Visible = false
+	frame.Visible = true
+end)
+
+yes.MouseButton1Click:Connect(function()
+	prompt.Visible = false
+	frame.Visible = false
+	miniButton.Visible = false
+end)
+
+-- SPEED INPUT
+
+speedBox.FocusLost:Connect(function()
+	local newSpeed = tonumber(speedBox.Text)
+
+	if newSpeed and newSpeed > 0 then
+		flightSpeed = math.clamp(newSpeed, 1, 10000)
+		speedBox.Text = tostring(flightSpeed)
+	else
+		speedBox.Text = tostring(flightSpeed)
+	end
+end)
+
+-- FLIGHT SYSTEM
 
 local function cleanup()
 	if velocity then velocity:Destroy() end
@@ -29,14 +205,37 @@ local function cleanup()
 	attachment = nil
 end
 
+local function createFlight()
+	if not flying or not rootPart or not humanoid then return end
+
+	cleanup()
+
+	attachment = Instance.new("Attachment")
+	attachment.Parent = rootPart
+
+	velocity = Instance.new("LinearVelocity")
+	velocity.Attachment0 = attachment
+	velocity.MaxForce = math.huge
+	velocity.VectorVelocity = Vector3.zero
+	velocity.Parent = rootPart
+
+	orientation = Instance.new("AlignOrientation")
+	orientation.Attachment0 = attachment
+	orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	orientation.Responsiveness = 15
+	orientation.MaxTorque = math.huge
+	orientation.Parent = rootPart
+
+	humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+end
+
 local function setupCharacter(char)
 	character = char
 	humanoid = char:WaitForChild("Humanoid")
 	rootPart = char:WaitForChild("HumanoidRootPart")
 
 	if flying then
-		flying = false
-		cleanup()
+		createFlight()
 	end
 end
 
@@ -52,30 +251,16 @@ local function toggleFlight()
 	flying = not flying
 
 	if flying then
-		attachment = Instance.new("Attachment")
-		attachment.Parent = rootPart
-
-		velocity = Instance.new("LinearVelocity")
-		velocity.Attachment0 = attachment
-		velocity.MaxForce = math.huge
-		velocity.VectorVelocity = Vector3.zero
-		velocity.Parent = rootPart
-
-		orientation = Instance.new("AlignOrientation")
-		orientation.Attachment0 = attachment
-		orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-		orientation.Responsiveness = 15
-		orientation.MaxTorque = math.huge
-		orientation.Parent = rootPart
-
-		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+		createFlight()
 	else
 		cleanup()
 		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
 	end
 end
 
-UserInputService.InputBegan:Connect(function(input, processed)
+-- INPUT
+
+UIS.InputBegan:Connect(function(input, processed)
 	if processed then return end
 
 	if input.KeyCode == Enum.KeyCode.E then
@@ -85,38 +270,51 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	keys[input.KeyCode] = true
 end)
 
-UserInputService.InputEnded:Connect(function(input)
+UIS.InputEnded:Connect(function(input)
 	keys[input.KeyCode] = false
 end)
+
+-- MOVEMENT
 
 RunService.RenderStepped:Connect(function()
 	if not flying or not velocity or not rootPart then return end
 
 	local camera = workspace.CurrentCamera
-	local moveDirection = Vector3.zero
+	local direction = Vector3.zero
 
 	local forward = camera.CFrame.LookVector
 	local right = camera.CFrame.RightVector
 
-	if keys[Enum.KeyCode.W] then moveDirection += forward end
-	if keys[Enum.KeyCode.S] then moveDirection -= forward end
-	if keys[Enum.KeyCode.D] then moveDirection += right end
-	if keys[Enum.KeyCode.A] then moveDirection -= right end
-	if keys[Enum.KeyCode.Space] then moveDirection += Vector3.yAxis end
-	if keys[Enum.KeyCode.LeftControl] then moveDirection -= Vector3.yAxis end
+	if keys[Enum.KeyCode.W] then direction += forward end
+	if keys[Enum.KeyCode.S] then direction -= forward end
+	if keys[Enum.KeyCode.D] then direction += right end
+	if keys[Enum.KeyCode.A] then direction -= right end
+	if keys[Enum.KeyCode.Space] then direction += Vector3.yAxis end
+	if keys[Enum.KeyCode.LeftControl] then direction -= Vector3.yAxis end
 
-	if moveDirection.Magnitude > 0 then
-		moveDirection = moveDirection.Unit
+	if direction.Magnitude > 0 then
+		direction = direction.Unit
 	end
 
-	local speed = humanoid.WalkSpeed
+	velocity.VectorVelocity = direction * flightSpeed
 
-	velocity.VectorVelocity = moveDirection * speed
+	local flatForward = Vector3.new(forward.X, 0, forward.Z)
 
-	if moveDirection.Magnitude > 0 then
+	if flatForward.Magnitude > 0.001 then
 		orientation.CFrame = CFrame.lookAt(
 			Vector3.zero,
-			Vector3.new(forward.X, 0, forward.Z)
+			flatForward
 		)
+	end
+end)
+
+-- REOPEN GUI WITH RIGHT SHIFT
+UIS.InputBegan:Connect(function(input, processed)
+	if processed then return end
+
+	if input.KeyCode == Enum.KeyCode.RightShift then
+		if not frame.Visible and not miniButton.Visible then
+			frame.Visible = true
+		end
 	end
 end)
